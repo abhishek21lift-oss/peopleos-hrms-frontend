@@ -10,7 +10,7 @@ function getPool(): Pool {
     }
     pool = new Pool({
       connectionString: url,
-      ssl: { rejectUnauthorized: false },
+      ssl: { rejectUnauthorized: true },
       max: 10,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,

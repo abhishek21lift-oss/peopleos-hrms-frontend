@@ -19,14 +19,14 @@ const nextConfig = {
       'lucide-react',
       'recharts',
       'framer-motion',
-      '@dnd-kit/core',
     ],
   },
 
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
-      { protocol: 'https', hostname: '**' },
+      { protocol: 'https', hostname: '*.supabase.co' },
+      { protocol: 'https', hostname: '*.supabase.in' },
     ],
   },
 

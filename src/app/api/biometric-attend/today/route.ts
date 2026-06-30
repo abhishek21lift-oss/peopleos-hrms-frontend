@@ -1,11 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { requireAuth, AuthUser } from '@/app/api/_auth';
+
+interface AttendanceRow {
+  id: string;
+  member_id: string;
+  member_name: string;
+  check_in_time: string;
+  verification_method: string;
+  device_name: string;
+  attendance_status: string;
+}
 
 export async function GET(req: NextRequest) {
+  let user: AuthUser;
+  try {
+    user = await requireAuth(req);
+  } catch (e) {
+    return e as NextResponse;
+  }
   try {
     const today = new Date().toISOString().slice(0, 10);
 
-    const allRows: any[] = await query(
+    const allRows = await query<AttendanceRow>(
       'SELECT id, member_id, member_name, check_in_time, verification_method, device_name, attendance_status FROM biometric_attendance WHERE date = $1 ORDER BY check_in_time DESC',
       [today],
     );
@@ -29,8 +46,8 @@ export async function GET(req: NextRequest) {
       active: total,
       feed,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Today stats error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

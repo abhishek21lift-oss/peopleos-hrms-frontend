@@ -26,7 +26,7 @@ export default function Guard({ children, role, roles }: Props) {
     }
 
     if (!hasRole(user.role, roles ?? role)) {
-      router.replace('/pt-os');
+      router.replace('/login?unauthorized=true');
       return;
     }
 
@@ -70,7 +70,7 @@ export default function Guard({ children, role, roles }: Props) {
               <path d="M2 12l10 5 10-5" />
             </svg>
           </div>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--brand-soft)', borderTopColor: 'var(--brand-lo)', animation: 'spin 0.8s linear infinite' }} />
+          <div className="animate-spin" style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--brand-soft)', borderTopColor: 'var(--brand-lo)' }} />
 
           <div
             style={{

@@ -1,8 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, execute, queryOne } from '@/lib/db';
+import { requireAuth, AuthUser } from '@/app/api/_auth';
+import { checkRateLimit } from '@/app/api/_ratelimit';
+
+interface GymSettings {
+  geofence_lat: number;
+  geofence_lng: number;
+  geofence_radius: number;
+  enable_gps: boolean;
+  duplicate_window_minutes: number;
+}
+
+interface AttendanceRecord {
+  id: string;
+  check_in_time: string;
+}
 
 export async function POST(req: NextRequest) {
+  let user: AuthUser;
   try {
+    user = await requireAuth(req);
+  } catch (e) {
+    return e as NextResponse;
+  }
+  try {
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    if (!checkRateLimit(`${ip}:biometric`, 10, 60_000)) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const body = await req.json();
     const { memberId, memberName, verificationMethod, deviceName, latitude, longitude } = body;
 
@@ -10,9 +36,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'memberId and verificationMethod are required' }, { status: 400 });
     }
 
-    const settings = await queryOne<any>('SELECT geofence_lat, geofence_lng, geofence_radius, enable_gps, duplicate_window_minutes FROM gym_settings WHERE id = 1');
+    const settings = await queryOne<GymSettings>('SELECT geofence_lat, geofence_lng, geofence_radius, enable_gps, duplicate_window_minutes FROM gym_settings WHERE id = 1');
     if (!settings) {
-      return NextResponse.json({ error: 'Gym settings not configured' }, { status: 500 });
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
     if (settings.enable_gps && latitude && longitude) {
@@ -30,7 +56,7 @@ export async function POST(req: NextRequest) {
     }
 
     const today = new Date().toISOString().slice(0, 10);
-    const existing = await queryOne<any>(
+    const existing = await queryOne<AttendanceRecord>(
       'SELECT id, check_in_time FROM biometric_attendance WHERE member_id = $1 AND date = $2',
       [memberId, today],
     );
@@ -50,15 +76,15 @@ export async function POST(req: NextRequest) {
     const hour = now.getHours();
     const status = hour >= 10 ? 'late' : 'present';
 
-    const inserted = await queryOne<any>(
+    const inserted = await queryOne<AttendanceRecord>(
       `INSERT INTO biometric_attendance (member_id, member_name, date, check_in_time, day, gps_lat, gps_lng, verification_method, device_name, attendance_status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
       [memberId, memberName || '', today, timeStr, day, latitude || null, longitude || null, verificationMethod, deviceName || '', status],
     );
 
     return NextResponse.json({ success: true, attendanceId: inserted?.id });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Biometric mark error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

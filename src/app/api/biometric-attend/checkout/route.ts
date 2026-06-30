@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, execute, queryOne } from '@/lib/db';
+import { requireAuth, AuthUser } from '@/app/api/_auth';
+
+interface AttendanceRecord {
+  id: string;
+  check_in_time: string;
+}
 
 export async function POST(req: NextRequest) {
+  let user: AuthUser;
+  try {
+    user = await requireAuth(req);
+  } catch (e) {
+    return e as NextResponse;
+  }
   try {
     const body = await req.json();
     const { memberId } = body;
@@ -10,7 +22,7 @@ export async function POST(req: NextRequest) {
     }
 
     const today = new Date().toISOString().slice(0, 10);
-    const record = await queryOne<any>(
+    const record = await queryOne<AttendanceRecord>(
       'SELECT id, check_in_time FROM biometric_attendance WHERE member_id = $1 AND date = $2 AND check_out_time IS NULL',
       [memberId, today],
     );
@@ -30,8 +42,8 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({ success: true, sessionDurationMinutes: durationMin });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Biometric checkout error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -55,7 +55,7 @@ function BiometricSettingsContent() {
   useEffect(() => {
     api.gymSettings.get().then((res: any) => {
       if (res) setSettings(res);
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch((err) => { console.error('[biometric-settings] failed to load gym settings:', err); }).finally(() => setLoading(false));
   }, []);
 
   const update = <K extends keyof GymSettings>(key: K, val: GymSettings[K]) => {

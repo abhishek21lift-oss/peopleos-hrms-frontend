@@ -6,10 +6,13 @@ import {
 } from '@simplewebauthn/server';
 
 const RP_NAME = '619 ERP';
-const RP_ID = process.env.VERCEL_URL || 'localhost:3000';
-const ORIGIN = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : 'http://localhost:3000';
+const RP_ID = process.env.NEXT_PUBLIC_APP_DOMAIN ||
+  (process.env.VERCEL_URL ? process.env.VERCEL_URL.split(':')[0] : 'localhost');
+const ORIGIN = process.env.NEXT_PUBLIC_APP_DOMAIN
+  ? `https://${process.env.NEXT_PUBLIC_APP_DOMAIN}`
+  : process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000';
 
 export { RP_NAME, RP_ID, ORIGIN };
 

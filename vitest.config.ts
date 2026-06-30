@@ -12,6 +12,16 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/__tests__/setup.ts'],
     include: ['**/*.test.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      thresholds: {
+        lines: 20,
+        functions: 20,
+        branches: 20,
+        statements: 20,
+      },
+    },
   },
   resolve: {
     alias: {

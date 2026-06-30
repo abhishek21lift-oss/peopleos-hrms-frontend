@@ -1,5 +1,5 @@
 # ─── Stage 1: Install ALL dependencies (including devDeps for build) ─
-FROM node:20-alpine AS deps
+FROM node:20.19.1-alpine3.21 AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 # Install ALL deps (devDeps needed for TypeScript + Next.js build)
@@ -7,7 +7,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --legacy-peer-deps
 
 # ─── Stage 2: Build ────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:20.19.1-alpine3.21 AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -19,7 +19,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 # ─── Stage 3: Production runner (minimal image) ────────────────────
-FROM node:20-alpine AS runner
+FROM node:20.19.1-alpine3.21 AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

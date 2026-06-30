@@ -91,7 +91,7 @@ function serializeBody(body: unknown): BodyInit | undefined {
 // ──────────────────────────────────────────────────────────────────────
 //  Global 401 handler
 // ──────────────────────────────────────────────────────────────────────
-const SESSION_USER_KEY = '619_user_v2';
+const SESSION_USER_KEY = '619_user_minimal_v3';
 let _redirecting = false;
 
 /** Reset the redirect lock — called by AuthProvider after login() succeeds. */
@@ -103,7 +103,7 @@ function handleUnauthorized(): void {
   if (typeof window === 'undefined' || _redirecting) return;
   if (window.location.pathname === '/login') return;
   _redirecting = true;
-  try { localStorage.removeItem(SESSION_USER_KEY); } catch { /* noop */ }
+  try { sessionStorage.removeItem(SESSION_USER_KEY); } catch { /* noop */ }
   window.dispatchEvent(new CustomEvent('session-expired'));
 }
 

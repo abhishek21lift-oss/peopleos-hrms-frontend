@@ -1,7 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { requireAuth, AuthUser } from '@/app/api/_auth';
+
+interface AttendanceRow {
+  member_id: string;
+  member_name: string;
+  date: string;
+  check_in_time: string;
+  check_out_time: string | null;
+  day: string;
+  verification_method: string;
+  device_name: string;
+  attendance_status: string;
+  gps_lat: number | null;
+  gps_lng: number | null;
+}
 
 export async function GET(req: NextRequest) {
+  let user: AuthUser;
+  try {
+    user = await requireAuth(req);
+  } catch (e) {
+    return e as NextResponse;
+  }
   try {
     const range = req.nextUrl.searchParams.get('range') || 'daily';
     const date = req.nextUrl.searchParams.get('date') || new Date().toISOString().slice(0, 10);
@@ -9,7 +30,7 @@ export async function GET(req: NextRequest) {
 
     const cols = 'member_id, member_name, date, check_in_time, check_out_time, day, verification_method, device_name, attendance_status, gps_lat, gps_lng';
     let sql: string;
-    let params: any[];
+    let params: unknown[];
     if (range === 'monthly') {
       const month = date.slice(0, 7);
       sql = `SELECT ${cols} FROM biometric_attendance WHERE to_char(date, 'YYYY-MM') = $1 ORDER BY date, check_in_time`;
@@ -27,7 +48,7 @@ export async function GET(req: NextRequest) {
       params = [date];
     }
 
-    const records: any[] = await query(sql, params);
+    const records = await query<AttendanceRow>(sql, params);
 
     if (format === 'csv') {
       const header = 'Member ID,Member Name,Date,Check In,Check Out,Day,Method,Device,Status,Lat,Lng\n';
@@ -43,8 +64,8 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ records, total: records.length });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Report error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

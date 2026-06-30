@@ -246,7 +246,7 @@ export default function AddCoachPage() {
           <button type="button" onClick={function() { photoRef.current?.click(); }}
             className="group relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-[24px] transition-all"
             style={{ background: 'linear-gradient(135deg,rgba(99,102,241,0.08) 0%,rgba(139,92,246,0.06) 100%)', border: '2px dashed rgba(99,102,241,0.25)' }}>
-            {photoPreview ? <img src={photoPreview} alt="" className="h-full w-full object-cover" /> : <Camera size={24} style={{ color: 'rgba(99,102,241,0.5)' }} />}
+            {photoPreview ? <img src={photoPreview} alt="Trainer photo preview" className="h-full w-full object-cover" /> : <Camera size={24} style={{ color: 'rgba(99,102,241,0.5)' }} />}
             <span className="absolute inset-0 flex items-center justify-center rounded-[22px] bg-black/20 opacity-0 transition-opacity group-hover:opacity-100"><Camera size={20} className="text-white" /></span>
           </button>
           <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={function(e) { const f = e.target.files?.[0]; if (f) setPhotoPreview(URL.createObjectURL(f)); }} />

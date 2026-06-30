@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, execute } from '@/lib/db';
 import { generateRegOptions, RP_ID } from '@/lib/webauthn-server';
+import { requireAuth, AuthUser } from '@/app/api/_auth';
 import crypto from 'crypto';
 
+interface CredentialRow {
+  credential_id: string;
+}
+
 export async function GET(req: NextRequest) {
+  let user: AuthUser;
+  try {
+    user = await requireAuth(req);
+  } catch (e) {
+    return e as NextResponse;
+  }
   try {
     const memberId = req.nextUrl.searchParams.get('member_id');
     if (!memberId) {
@@ -12,14 +23,14 @@ export async function GET(req: NextRequest) {
 
     await execute("DELETE FROM webauthn_challenges WHERE expires_at < now()");
 
-    const existingCreds: any[] = await query(
+    const existingCreds = await query<CredentialRow>(
       'SELECT credential_id FROM webauthn_credentials WHERE member_id = $1',
       [memberId],
     );
 
     const options = await generateRegOptions(
       { id: memberId, name: memberId, displayName: memberId },
-      existingCreds.map((c: any) => ({ id: c.credential_id })),
+      existingCreds.map((c) => ({ id: c.credential_id })),
     );
 
     const challenge = options.challenge;
@@ -45,8 +56,8 @@ export async function GET(req: NextRequest) {
         type: 'public-key',
       })),
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('WebAuthn register begin error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

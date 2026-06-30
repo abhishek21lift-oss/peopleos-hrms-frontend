@@ -65,7 +65,7 @@ describe('AuthProvider', () => {
 
   it('hydrates from cache immediately then validates with me()', async () => {
     const cached = { id: 'u1', email: 'cached@x.com', role: 'admin' };
-    window.localStorage.setItem('619_user_v2', JSON.stringify(cached));
+    window.sessionStorage.setItem('619_user_minimal_v3', JSON.stringify(cached));
     let resolveMe!: (v: { user: typeof cached }) => void;
     mocks.mockMe.mockReturnValue(new Promise((res) => { resolveMe = res; }));
     wrap(<Probe />);
@@ -77,17 +77,17 @@ describe('AuthProvider', () => {
 
   it('clears cached user on 401 from me()', async () => {
     const cached = { id: 'u1', email: 'cached@x.com', role: 'admin' };
-    window.localStorage.setItem('619_user_v2', JSON.stringify(cached));
+    window.sessionStorage.setItem('619_user_minimal_v3', JSON.stringify(cached));
     mocks.mockMe.mockRejectedValue({ status: 401, message: 'no' });
     wrap(<Probe />);
     await waitFor(() => expect(screen.getByTestId('loading').textContent).toBe('false'));
     expect(screen.getByTestId('user').textContent).toBe('none');
-    expect(window.localStorage.getItem('619_user_v2')).toBeNull();
+    expect(window.sessionStorage.getItem('619_user_minimal_v3')).toBeNull();
   });
 
   it('keeps cached user on 5xx from me()', async () => {
     const cached = { id: 'u1', email: 'cached@x.com', role: 'admin' };
-    window.localStorage.setItem('619_user_v2', JSON.stringify(cached));
+    window.sessionStorage.setItem('619_user_minimal_v3', JSON.stringify(cached));
     mocks.mockMe.mockRejectedValue({ status: 503, message: 'down' });
     wrap(<Probe />);
     await waitFor(() => expect(screen.getByTestId('loading').textContent).toBe('false'));
@@ -119,7 +119,7 @@ describe('AuthProvider', () => {
     });
     const api = (CaptureApi as unknown as { api: ReturnType<typeof useAuth> }).api;
     expect(api.user).toBeNull();
-    expect(window.localStorage.getItem('619_user_v2')).toBeNull();
+    expect(window.sessionStorage.getItem('619_user_minimal_v3')).toBeNull();
   });
 
   it('responds to session-expired event by clearing state and routing to /login', async () => {

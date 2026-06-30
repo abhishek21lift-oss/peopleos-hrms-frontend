@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { requireAuth, AuthUser } from '@/app/api/_auth';
 
 export async function GET(req: NextRequest) {
+  let user: AuthUser;
+  try {
+    user = await requireAuth(req);
+  } catch (e) {
+    return e as NextResponse;
+  }
   try {
     const memberId = req.nextUrl.searchParams.get('member_id');
     const range = req.nextUrl.searchParams.get('range') || 'daily';
     const date = req.nextUrl.searchParams.get('date') || new Date().toISOString().slice(0, 10);
 
     let sql: string;
-    let params: any[];
+    let params: unknown[];
 
     const cols = 'id, member_id, member_name, date, check_in_time, check_out_time, day, gps_lat, gps_lng, verification_method, device_name, attendance_status, session_duration_minutes, created_at';
     if (memberId) {
@@ -33,8 +40,8 @@ export async function GET(req: NextRequest) {
 
     const records = await query(sql, params);
     return NextResponse.json({ records, total: records.length });
-  } catch (err: any) {
+  } catch (err) {
     console.error('History error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

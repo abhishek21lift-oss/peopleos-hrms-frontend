@@ -68,7 +68,7 @@ function MarkAttendanceContent() {
         if (ctx.name) setMemberName(ctx.name);
       } catch {}
     }
-    api.gymSettings.get().then((res: any) => setSettings(res)).catch(() => {});
+    api.gymSettings.get().then((res: any) => setSettings(res)).catch((err) => { console.error('[mark-attendance] failed to load gym settings:', err); });
   }, []);
 
   const handleGPSVerify = async () => {
@@ -83,20 +83,6 @@ function MarkAttendanceContent() {
       async (pos) => {
         const { latitude, longitude } = pos.coords;
         setLocation({ lat: latitude, lng: longitude });
-        if (settings && settings.enable_gps) {
-          const R = 6371000;
-          const dLat = ((latitude - settings.geofence_lat) * Math.PI) / 180;
-          const dLng = ((longitude - settings.geofence_lng) * Math.PI) / 180;
-          const a = Math.sin(dLat / 2) ** 2 + Math.cos((settings.geofence_lat * Math.PI) / 180) * Math.cos((latitude * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-          const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          if (dist > settings.geofence_radius) {
-            setErrorMsg(`You are ${Math.round(dist)}m from the gym (limit: ${settings.geofence_radius}m). Please visit the gym to mark attendance.`);
-            setGpsStatus('denied');
-            setStep('error');
-            setLoading(false);
-            return;
-          }
-        }
         setGpsStatus('verified');
         setLoading(false);
         setStep('biometric');

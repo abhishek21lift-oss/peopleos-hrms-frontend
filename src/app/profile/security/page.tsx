@@ -70,7 +70,7 @@ export default function SecurityPage() {
     if (mfaCode.length !== 6) return toast.error('Enter the 6-digit code');
     setMfaLoading(true);
     try {
-      const res = await http<{ recoveryCodes: string[] }>('/api/profile/mfa/verify', { method: 'POST', body: JSON.stringify({ code: mfaCode, secret }) });
+      const res = await http<{ recoveryCodes: string[] }>('/api/profile/mfa/verify', { method: 'POST', body: JSON.stringify({ code: mfaCode }) });
       setRecoveryCodes(res.recoveryCodes);
       setMfaEnabled(true);
       setStep('codes');
@@ -157,14 +157,14 @@ export default function SecurityPage() {
       {mfaModal && (
         <>
           <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" role="presentation" onClick={() => { setMfaModal(false); setMfaCode(''); }} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-md mx-auto bg-[#1A1A1A] border border-white/10 rounded-2xl p-6 shadow-2xl">
+          <div role="dialog" aria-modal="true" className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-md mx-auto bg-[#1A1A1A] border border-white/10 rounded-2xl p-6 shadow-2xl">
             {step === 'qr' && (
               <div className="space-y-4">
                 <h4 className="text-[15px] font-semibold text-white">Scan QR Code</h4>
                 <p className="text-[13px] text-white/50">Scan with Google Authenticator or Authy.</p>
                 {mfaLoading
                   ? <div className="w-40 h-40 mx-auto bg-white/[0.06] rounded-xl animate-pulse" />
-                  : qrUrl && <img src={qrUrl} alt="QR Code" className="w-40 h-40 mx-auto rounded-xl bg-white p-2" />
+                  : qrUrl && <img src={qrUrl} alt="MFA QR Code" className="w-40 h-40 mx-auto rounded-xl bg-white p-2" />
                 }
                 <button onClick={() => setStep('verify')} className="w-full py-2.5 rounded-xl bg-[#FF2E63] text-white text-[13px] font-medium">I've scanned it →</button>
               </div>

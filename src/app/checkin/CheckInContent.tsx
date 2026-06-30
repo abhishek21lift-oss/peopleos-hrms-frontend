@@ -448,6 +448,7 @@ export default function CheckInContent() {
             <video
               ref={camera.videoRef}
               autoPlay playsInline muted
+              aria-label="Camera feed for face recognition check-in"
               style={{
                 position: 'absolute', inset: 0,
                 width: '100%', height: '100%',

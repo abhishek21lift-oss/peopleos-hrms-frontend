@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, execute, queryOne } from '@/lib/db';
 import { verifyRegResponse } from '@/lib/webauthn-server';
+import { requireAuth, AuthUser } from '@/app/api/_auth';
+
+interface ChallengeRow {
+  challenge: string;
+}
 
 export async function POST(req: NextRequest) {
+  let user: AuthUser;
+  try {
+    user = await requireAuth(req);
+  } catch (e) {
+    return e as NextResponse;
+  }
   try {
     const body = await req.json();
     const { memberId, deviceName, credentialId, rawId, attestationObject, clientDataJSON } = body;
@@ -11,7 +22,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const challengeRow: any = await queryOne(
+    const challengeRow = await queryOne<ChallengeRow>(
       "SELECT challenge FROM webauthn_challenges WHERE member_id = $1 AND type = 'registration' AND expires_at > now() ORDER BY created_at DESC LIMIT 1",
       [memberId],
     );
@@ -43,8 +54,8 @@ export async function POST(req: NextRequest) {
     await execute('DELETE FROM webauthn_challenges WHERE challenge = $1', [challengeRow.challenge]);
 
     return NextResponse.json({ success: true, credential: { id: credentialId } });
-  } catch (err: any) {
+  } catch (err) {
     console.error('WebAuthn register complete error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

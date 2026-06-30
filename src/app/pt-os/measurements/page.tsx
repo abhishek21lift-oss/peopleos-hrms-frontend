@@ -29,7 +29,7 @@ export default function MeasurementsPage() {
     api.pt.clients().then((r: any) => {
       const arr = Array.isArray(r?.data) ? r.data : [];
       setClients(arr.map((c: any) => ({ id: c.id, name: c.name })));
-    }).catch(() => {});
+    }).catch((err) => { console.error('[measurements] failed to load clients:', err); return []; });
   }, []);
 
   const filteredClients = clients.filter(c =>

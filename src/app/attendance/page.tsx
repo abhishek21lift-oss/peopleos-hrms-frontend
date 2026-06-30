@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import Guard from '@/components/Guard';
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/lib/auth-context';
@@ -856,7 +857,7 @@ function MemberAvatar({ client, large }: { client: Client; large?: boolean }) {
   const sz = large ? 'h-12 w-12 text-sm' : 'h-9 w-9 text-xs';
   const initials = (client.name || '?').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
   if ((client as any).photo_url) {
-    return <img src={(client as any).photo_url} alt={client.name} className={`${sz} rounded-full object-cover`} loading="lazy" />;
+    return <Image src={(client as any).photo_url} alt={client.name} width={48} height={48} className={`${sz} rounded-full object-cover`} />;
   }
   return (
     <div className={`${sz} shrink-0 rounded-full bg-[linear-gradient(135deg,#dc2626,#7c3aed)] flex items-center justify-center font-semibold text-white shadow-sm`}>

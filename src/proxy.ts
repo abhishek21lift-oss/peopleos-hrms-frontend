@@ -1,5 +1,5 @@
 /**
- * proxy.ts — Server-side auth guard (Next.js 16+)
+ * proxy.ts — Auth guard + security headers (Next.js 16+)
  *
  * Renamed from middleware.ts to proxy.ts per Next.js 16 convention.
  * https://nextjs.org/docs/messages/middleware-to-proxy
@@ -22,6 +22,9 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import crypto from 'crypto';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 const PUBLIC_PATHS: string[] = [
   '/login',
@@ -46,11 +49,52 @@ function isPublicPath(pathname: string): boolean {
   );
 }
 
+function buildCsp(nonce: string, pathname: string): string {
+  const isCheckin = pathname.startsWith('/checkin') || pathname.startsWith('/clients/');
+
+  const scriptSrc = [
+    `'nonce-${nonce}'`,
+    "'self'",
+    ...(IS_PROD ? [] : ["'unsafe-eval'"]),
+    ...(isCheckin ? ["'unsafe-inline'"] : []),
+  ];
+
+  const directives: Record<string, string[]> = {
+    'default-src': ["'self'"],
+    'script-src': scriptSrc,
+    'style-src': [`'nonce-${nonce}'`, "'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://api.fontshare.com'],
+    'font-src': ["'self'", 'https://fonts.gstatic.com', 'https://api.fontshare.com'],
+    'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+    'connect-src': ["'self'", 'https:', 'wss:'],
+    'media-src': ["'self'", 'blob:'],
+    'worker-src': ['blob:'],
+    'frame-ancestors': ["'none'"],
+  };
+
+  return Object.entries(directives)
+    .map(([key, values]) => `${key} ${values.join(' ')}`)
+    .join('; ');
+}
+
+function applySecurityHeaders(res: NextResponse, nonce: string, pathname: string): void {
+  res.headers.set('x-nonce', nonce);
+  res.headers.set('Content-Security-Policy', buildCsp(nonce, pathname));
+  res.headers.set('X-Content-Type-Options', 'nosniff');
+  res.headers.set('X-Frame-Options', 'DENY');
+  res.headers.set('X-XSS-Protection', '1; mode=block');
+  res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.headers.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
+  res.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+}
+
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const nonce = crypto.randomBytes(16).toString('base64url');
 
   if (isPublicPath(pathname)) {
-    return NextResponse.next();
+    const res = NextResponse.next();
+    applySecurityHeaders(res, nonce, pathname);
+    return res;
   }
 
   const token = req.cookies.get('token')?.value;
@@ -72,11 +116,13 @@ export function proxy(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  const res = NextResponse.next();
+  applySecurityHeaders(res, nonce, pathname);
+  return res;
 }
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon\.ico|models|.*\.(?:png|jpg|jpeg|gif|svg|ico|webp|avif|woff2|woff|ttf|otf)).*)',
+    '/((?!api|_next/static|_next/image|favicon\\.ico|models|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|avif|woff2|woff|ttf|otf)).*)',
   ],
 };

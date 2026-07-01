@@ -74,14 +74,8 @@ const nextConfig = {
     }
 
     const backendUrl = (
-      process.env.NEXT_PUBLIC_API_URL || ''
+      process.env.NEXT_PUBLIC_API_URL || 'https://peopleos-hrms-backend.onrender.com'
     ).trim().replace(/\/+$/, '');
-
-    if (!backendUrl) {
-      throw new Error(
-        'NEXT_PUBLIC_API_URL is not set. Set it in Vercel project settings or .env.local'
-      );
-    }
 
     return [
       ...passThrough,

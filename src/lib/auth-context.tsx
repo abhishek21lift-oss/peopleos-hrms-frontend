@@ -38,6 +38,8 @@ function ssDel(key: string): void {
 }
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes idle timeout
+// If the backend doesn't respond within this window, unblock the login form.
+const ME_TIMEOUT_MS = 8000;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user,    setUser]    = useState<User | null>(null);
@@ -73,13 +75,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     if (cachedUser) setUser(cachedUser);
 
+    // Race the me() call against a timeout so the login form is never blocked
+    // indefinitely by a slow or unreachable backend (Render cold start, etc.).
+    const meTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('me_timeout')), ME_TIMEOUT_MS)
+    );
+
     // Silently validate the session cookie with the server.
     // Rules:
     //   - 401 / 403  → token is genuinely invalid, clear everything
     //   - network / timeout / 5xx → keep cached session (Render cold start, etc.)
     //   - If login() already completed before me() returns, ignore me() result
     //     entirely — the fresh login data is the source of truth.
-    api.auth.me()
+    Promise.race([api.auth.me(), meTimeout])
       .then((res) => {
         if (loggedInRef.current) return;
         if (res?.user) {
@@ -98,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           ssDel(SESSION_USER_KEY);
         }
-        // All other errors: keep cached user silently
+        // All other errors (including timeout): keep cached user silently
       })
       .finally(() => {
         // Only set loading=false here if login() hasn't already done it

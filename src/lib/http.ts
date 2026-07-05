@@ -22,7 +22,7 @@ function apiBase(): string {
   const raw = (process.env.NEXT_PUBLIC_API_URL ?? '').trim().replace(/\/+$/, '');
   if (!raw) {
     throw new Error(
-      '[619-erp] NEXT_PUBLIC_API_URL is not set. ' +
+      '[peopleos-hrms] NEXT_PUBLIC_API_URL is not set. ' +
       'Copy .env.example to .env.local and set NEXT_PUBLIC_API_URL=http://localhost:5000'
     );
   }

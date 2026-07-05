@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(
     {
       status: 'ok',
-      service: '619-erp-frontend',
+      service: 'peopleos-hrms-frontend',
       timestamp: new Date().toISOString(),
       version,
       env: process.env.NODE_ENV,

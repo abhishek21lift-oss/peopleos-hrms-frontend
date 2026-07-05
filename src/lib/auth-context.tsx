@@ -20,8 +20,6 @@ const AuthContext = createContext<Ctx>({
   logout: () => {},
 });
 
-// Minimal non-sensitive user fields stored in sessionStorage (cleared on tab close).
-// Full user object (including email) remains in memory only.
 const SESSION_USER_KEY = '619_user_minimal_v3';
 
 function ssGet(key: string): string | null {
@@ -37,21 +35,31 @@ function ssDel(key: string): void {
   try { sessionStorage.removeItem(key); } catch { /* noop */ }
 }
 
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes idle timeout
-// If the backend doesn't respond within this window, unblock the login form.
+// Read the cached user synchronously at render time so child components
+// see the correct user on the very first render (no flash, no spinner).
+function readCachedUser(): User | null {
+  const raw = ssGet(SESSION_USER_KEY);
+  if (!raw) return null;
+  try {
+    const p = JSON.parse(raw) as { id: string; name: string; role: string };
+    return { id: p.id, name: p.name, role: p.role as Role, email: '' };
+  } catch { ssDel(SESSION_USER_KEY); return null; }
+}
+
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const ME_TIMEOUT_MS = 8000;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user,    setUser]    = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Initialise synchronously from sessionStorage:
+  // - user: cached minimal profile (or null for new visitors)
+  // - loading: true only when there is NO cached session (server check needed before rendering)
+  const [user,    setUser]    = useState<User | null>(readCachedUser);
+  const [loading, setLoading] = useState<boolean>(() => ssGet(SESSION_USER_KEY) === null);
   const router = useRouter();
 
-  // If the user explicitly logged in during this session, skip me() result
   const loggedInRef = useRef(false);
   const initDone    = useRef(false);
 
-  // ── Internal logout helper (shared by the public logout() and the
-  //    session-expired event listener below) ────────────────────────────
   const _clearSession = useCallback(function () {
     loggedInRef.current = false;
     api.auth.logout?.().catch((_err) => console.warn('[auth] logout failed', _err));
@@ -63,30 +71,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (initDone.current) return;
     initDone.current = true;
 
-    // Restore cached user immediately — avoids blank flash on hard refresh.
-    // Only id + name + role are persisted; email and other PII stay in memory.
-    const cachedRaw = ssGet(SESSION_USER_KEY);
-    let cachedUser: User | null = null;
-    if (cachedRaw) {
-      try {
-        const partial = JSON.parse(cachedRaw) as { id: string; name: string; role: string };
-        cachedUser = { id: partial.id, name: partial.name, role: partial.role as any, email: '' };
-      } catch { ssDel(SESSION_USER_KEY); }
-    }
-    if (cachedUser) setUser(cachedUser);
-
-    // Race the me() call against a timeout so the login form is never blocked
-    // indefinitely by a slow or unreachable backend (Render cold start, etc.).
+    // Race the server check against a timeout so the UI is never blocked
+    // indefinitely by a slow or unreachable backend (Render cold start etc.).
     const meTimeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('me_timeout')), ME_TIMEOUT_MS)
     );
 
-    // Silently validate the session cookie with the server.
-    // Rules:
-    //   - 401 / 403  → token is genuinely invalid, clear everything
-    //   - network / timeout / 5xx → keep cached session (Render cold start, etc.)
-    //   - If login() already completed before me() returns, ignore me() result
-    //     entirely — the fresh login data is the source of truth.
     Promise.race([api.auth.me(), meTimeout])
       .then((res) => {
         if (loggedInRef.current) return;
@@ -100,16 +90,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       })
       .catch((err: unknown) => {
-        if (loggedInRef.current) return; // same — don't touch a freshly logged-in user
+        if (loggedInRef.current) return;
         const status = (err as { status?: number })?.status;
         if (status === 401 || status === 403) {
           setUser(null);
           ssDel(SESSION_USER_KEY);
         }
-        // All other errors (including timeout): keep cached user silently
+        // timeout / network error: keep cached user silently
       })
       .finally(() => {
-        // Only set loading=false here if login() hasn't already done it
         if (!loggedInRef.current) setLoading(false);
       });
   }, []);
@@ -123,7 +112,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('session-expired', onSessionExpired);
   }, [_clearSession, router]);
 
-  // Idle session timeout
   useEffect(() => {
     if (!user) return;
     let idleTimer: ReturnType<typeof setTimeout>;
@@ -145,15 +133,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async function (email: string, password: string): Promise<void> {
     const data = await api.auth.login(email, password);
-    // Reset the redirect lock so future 401s (e.g. from a background request
-    // that was in-flight before login) will fire the session-expired event again.
     resetRedirectLock();
-    // Mark that a real login happened so the background me() call is ignored
     loggedInRef.current = true;
     const u = data.user;
     setUser(u);
     ssSet(SESSION_USER_KEY, JSON.stringify({ id: u.id, name: u.name, role: u.role }));
-    // Unblock the login page redirect immediately — don't wait for me()
     setLoading(false);
   }, []);
 

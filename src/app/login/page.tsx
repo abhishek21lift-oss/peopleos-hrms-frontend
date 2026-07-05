@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [error,    setError]    = useState('');
   const [busy,     setBusy]     = useState(false);
 
+  // Redirect already-authenticated users away from the login page.
   useEffect(() => {
     if (!loading && user) {
       if (user.role === 'trainer') router.replace('/trainer/dashboard');
@@ -38,22 +39,8 @@ export default function LoginPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-[#f0efed]">
-        <div className="flex flex-col items-center gap-5">
-          <motion.div
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <ShieldLogo size={80} />
-          </motion.div>
-          <div className="w-8 h-8 rounded-full border-[2px] border-[#DC2626] border-t-transparent animate-spin" />
-        </div>
-      </div>
-    );
-  }
-
+  // Always render the login form — no spinner gate.
+  // Authenticated users are redirected away by the effect above.
   return (
     <div className="min-h-screen bg-[#f0efed] flex overflow-hidden relative font-['Inter',sans-serif]">
 
@@ -106,7 +93,6 @@ export default function LoginPage() {
             C270 100 260 95 250 75
             C240 55 220 40 200 40 Z
           " fill="#1A1A1A" />
-          {/* Antlers */}
           <path d="
             M120 100 C110 70 105 40 115 10
             C120 -5 135 -10 150 -5
@@ -143,7 +129,6 @@ export default function LoginPage() {
 
           {/* ── Login Card ── */}
           <div className="relative bg-white rounded-[20px] border border-[#DC2626]/20 shadow-[0_8px_40px_rgba(0,0,0,0.08),0_2px_8px_rgba(220,38,38,0.06)] overflow-hidden dark:bg-[#1E1F24]">
-            {/* Subtle distressed edge line */}
             <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#DC2626] via-[#B91C1C] to-[#DC2626] opacity-80" />
             <div className="absolute bottom-0 left-0 right-0 h-px bg-[#DC2626]/10" />
 
@@ -187,7 +172,6 @@ export default function LoginPage() {
 
               {/* ── Form ── */}
               <form onSubmit={submit} className="space-y-5">
-                {/* Email */}
                 <div>
                   <label className="block text-[12px] font-semibold text-[#4A4A4A] mb-1.5 uppercase tracking-[0.08em]">
                     Email address
@@ -208,7 +192,6 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Password */}
                 <div>
                   <label className="block text-[12px] font-semibold text-[#4A4A4A] mb-1.5 uppercase tracking-[0.08em] dark:text-[var(--text-muted)]">
                     Password
@@ -233,7 +216,6 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Sign In Button */}
                 <motion.button
                   type="submit"
                   disabled={busy}
@@ -255,7 +237,6 @@ export default function LoginPage() {
                 </motion.button>
               </form>
 
-              {/* ── Support Message ── */}
               <div className="mt-6 text-center">
                 <p className="text-[12px] text-[#6B7280] leading-relaxed">
                   Having trouble?{' '}
@@ -268,7 +249,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* ── Footer ── */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -286,11 +266,9 @@ export default function LoginPage() {
   );
 }
 
-/* ── Red Shield Logo with Deer Silhouette ── */
 function ShieldLogo({ size = 88 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Shield background */}
       <path d="
         M44 2
         C44 2 12 14 6 20
@@ -303,8 +281,6 @@ function ShieldLogo({ size = 88 }: { size?: number }) {
         C88 30 88 26 82 20
         C76 14 44 2 44 2 Z
       " fill="#DC2626" />
-
-      {/* Shield inner highlight */}
       <path d="
         M44 8
         C44 8 16 18 11 23
@@ -317,8 +293,6 @@ function ShieldLogo({ size = 88 }: { size?: number }) {
         C82 32 82 28 77 23
         C72 18 44 8 44 8 Z
       " fill="#B91C1C" opacity="0.5" />
-
-      {/* Deer silhouette */}
       <path d="
         M44 30
         C40 30 37 33 36 36
@@ -334,8 +308,6 @@ function ShieldLogo({ size = 88 }: { size?: number }) {
         C55 42 53 39 52 36
         C51 33 48 30 44 30 Z
       " fill="#1A1A1A" />
-
-      {/* Antlers */}
       <path d="
         M33 38
         C30 32 28 26 29 20
@@ -350,8 +322,6 @@ function ShieldLogo({ size = 88 }: { size?: number }) {
         C50 18 48 22 49 27
         C50 32 52 36 53 38
       " fill="#1A1A1A" />
-
-      {/* 619 text */}
       <text
         x="44" y="68"
         textAnchor="middle"
